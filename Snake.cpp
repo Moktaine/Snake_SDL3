@@ -59,8 +59,6 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 SDL_AppResult SDL_AppIterate(void* appstate)
 {
 
-	bool is_game_over = false;
-
 	SDL_SetRenderDrawColor(renderer, 59, 161, 86, 0);
 	SDL_RenderClear(renderer);
 
@@ -69,30 +67,31 @@ SDL_AppResult SDL_AppIterate(void* appstate)
 
 	int head_next_block[2] = { snake.back()[0] + head_direction[0], snake.back()[1] + head_direction[1] };
 	if (head_next_block[0] == square_count || head_next_block[0] == -1 || head_next_block[1] == square_count || head_next_block[1] == -1) {
-		is_game_over = true;
+		return SDL_APP_SUCCESS;
 	}
+	
+	
 	//Snake Logic
-	if (!is_game_over) {
+	
+	for (int i = 0; i < snake.size(); i++) {
+		render_snakeblock(renderer, squares, snake, i);
 
-		
-
-		
-
-		for (int i = 0; i < snake.size(); i++) {
-			render_snakeblock(renderer, squares, snake, i);
-
-			if (i == snake.size() - 1) {
-				snake[i][0] += head_direction[0];
-				snake[i][1] += head_direction[1];
-			}
-			else {
-				int block_direction[2] = { snake[i + 1][0] - snake[i][0], snake[i + 1][1] - snake[i][1] };
-				snake[i][0] += block_direction[0];
-				snake[i][1] += block_direction[1];
-			}
-
+		if (i == snake.size() - 1) {
+			snake[i][0] += head_direction[0];
+			snake[i][1] += head_direction[1];
 		}
+		else {
+			int block_direction[2] = { snake[i + 1][0] - snake[i][0], snake[i + 1][1] - snake[i][1] };
+			snake[i][0] += block_direction[0];
+			snake[i][1] += block_direction[1];
+		}
+
 	}
+		
+
+		
+
+	
 
 
 	SDL_RenderPresent(renderer);
