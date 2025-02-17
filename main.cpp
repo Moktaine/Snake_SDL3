@@ -1,5 +1,6 @@
 #define SDL_MAIN_USE_CALLBACKS
 #include <SDL3/SDL.h>
+#include <SDL3_Image/SDL_image.h>
 #include <SDL3/SDL_main.h>
 #include "main.h"
 #include "snake.h"
@@ -32,13 +33,19 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
 		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "SDL_Init failed: %s\n", SDL_GetError());
 		return SDL_APP_FAILURE;
 	}
-
-	if (!SDL_CreateWindowAndRenderer("Snake", window_width, window_length, SDL_WINDOW_OPENGL, &window, &renderer)) {
+	if (!SDL_CreateWindowAndRenderer("Snake", window_width, window_length, 0, &window, &renderer)) {
 		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Could not create window and renderer: %s\n", SDL_GetError());
 		return SDL_APP_FAILURE;
 	}
+
+	SDL_SetPointerProperty(SDL_GetRendererProperties(renderer), SDL_PROP_RENDERER_CREATE_WINDOW_POINTER, window);
+	SDL_SetNumberProperty(SDL_GetRendererProperties(renderer), SDL_PROP_RENDERER_CREATE_OUTPUT_COLORSPACE_NUMBER, SDL_COLORSPACE_SRGB_LINEAR);
+
+
 	snake_obj = snake();
 	squares = create_squares();
+	add_food_to_board();
+	add_food_to_board();
 	add_food_to_board();
 
 	return SDL_APP_CONTINUE;
@@ -65,9 +72,10 @@ SDL_AppResult SDL_AppIterate(void* appstate)
 	SDL_SetRenderDrawColor(renderer, 59, 161, 86, 0);
 	SDL_RenderClear(renderer);
 
-
 	render_squares(renderer, squares);
-
+	for (int i = 0; i < snake_arr.size(); i++) {
+		squares[snake_arr[i][0]][snake_arr[i][1]] = -1;
+	}
 	
 	if (SDL_GetTicks() - timer_start_time > 250 / game_speed) {
 		snake_obj.Tick();
@@ -102,6 +110,7 @@ SDL_AppResult SDL_AppIterate(void* appstate)
 		}
 
 		timer_start_time = SDL_GetTicks();
+
 	}
 
 
@@ -109,8 +118,10 @@ SDL_AppResult SDL_AppIterate(void* appstate)
 		render_snakeblock(renderer, snake_arr, i);
 	}
 	
-
+	
 	SDL_RenderPresent(renderer);
+
+	
 
 	return SDL_APP_CONTINUE;  
 }
@@ -145,10 +156,8 @@ void render_squares(SDL_Renderer* renderer, int** squares) {
 	float initial_starting_position = (window_width - square_width * square_count) / 2;
 	for (int i = 0; i < square_count; i++) {
 		for (int j = 0; j < square_count; j++) {
-			if(squares[i][j] == 1) {
-				SDL_SetRenderDrawColor(renderer, 247, 87, 135, 0);
-			}
-			else if (choose_color1) {
+			
+			if (choose_color1) {
 				SDL_SetRenderDrawColor(renderer, color1.r, color1.g, color1.b, color1.a);
 			}
 			else {
@@ -162,14 +171,18 @@ void render_squares(SDL_Renderer* renderer, int** squares) {
 				square_width
 			};
 			
-
-
 			SDL_RenderFillRect(renderer, &square);
 			choose_color1 = !choose_color1;
-			
+
+			if (squares[i][j] == 1) {
+				SDL_Texture* texture = IMG_LoadTexture(renderer, "Sprites/apple.png");
+				SDL_RenderTexture(renderer, texture, NULL, &square);
+			}
+
 			if (squares[i][j] == -1) {
 				squares[i][j] = 0;
 			}
+
 		}
 	}
 }
@@ -186,24 +199,18 @@ void render_snakeblock(SDL_Renderer* renderer, std::vector<std::vector<int>> sna
 
 	index_of_snake_block == snake.size()-1 ? SDL_SetRenderDrawColor(renderer, 205, 219, 112, 0) : SDL_SetRenderDrawColor(renderer, 75, 133, 227, 0);
 	SDL_RenderFillRect(renderer, &rect);
-
-	squares[snake[index_of_snake_block][0]][snake[index_of_snake_block][1]] = -1;
 }
 
 
 void add_food_to_board() {
 	int x = rand() % square_count;
 	int y = rand() % square_count;
-	int max_tries = 500;
 
-	while ((squares[x][y] == 1 || squares[x][y] == -1 )&& max_tries > 0) {
+	
+	while (squares[x][y] == 1 || squares[x][y] == -1) {
+		SDL_Log("Food already exists at or Snake exists %d %d", x, y);
 		x = rand() % square_count;
 		y = rand() % square_count;
-		max_tries--;
-	}
-	SDL_Log("%d ", max_tries);
-	if (max_tries == 0) {
-		return;
 	}
 	squares[x][y] = 1;
 }
