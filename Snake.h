@@ -1,8 +1,15 @@
 #pragma once
 #include <vector>
+#include <SDL3/SDL.h>
+class snake
+{
+public:
+	snake();
+	void Tick();
 
-SDL_FRect** create_squares();
-void render_squares(SDL_Renderer* renderer, SDL_FRect** squares);
-void render_snakeblock(SDL_Renderer* renderer, SDL_FRect** squares, std::vector<std::vector<int>> snake, int i);
-void change_head_direction(int* head_direction, const int* direction);
-void handle_key_event(SDL_Event& event);
+	int* get_head_direction();
+	std::vector<std::vector<int>> get_snake_blocks();
+	void handle_key_event(SDL_Event& event);
+	void change_head_direction(int* head_direction, const int* direction);
+};
+
