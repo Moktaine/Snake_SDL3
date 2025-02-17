@@ -12,7 +12,6 @@ const int direction_right[2] = { 1,0 };
 
 int* head_direction;
 std::vector<std::vector<int>> snake_blocks;
-long long timer_start_time = 1000;
 
 
 snake::snake()
@@ -29,25 +28,20 @@ snake::snake()
 
 void snake::Tick()
 {
-
-	SDL_Log("%lld, %lld", SDL_GetTicks(), timer_start_time);
 	//Snake Logic
-	if (SDL_GetTicks() - timer_start_time > 250) {
-		for (int i = 0; i < snake_blocks.size(); i++) {
+	for (int i = 0; i < snake_blocks.size(); i++) {
 
-			if (i == snake_blocks.size() - 1) {
-				snake_blocks[i][0] += head_direction[0];
-				snake_blocks[i][1] += head_direction[1];
-			}
-			else {
-				int block_direction[2] = { snake_blocks[i + 1][0] - snake_blocks[i][0], snake_blocks[i + 1][1] - snake_blocks[i][1] };
-				snake_blocks[i][0] += block_direction[0];
-				snake_blocks[i][1] += block_direction[1];
-			}
+		if (i == snake_blocks.size() - 1) {
+			snake_blocks[i][0] += head_direction[0];
+			snake_blocks[i][1] += head_direction[1];
 		}
-
-		timer_start_time = SDL_GetTicks();
+		else {
+			int block_direction[2] = { snake_blocks[i + 1][0] - snake_blocks[i][0], snake_blocks[i + 1][1] - snake_blocks[i][1] };
+			snake_blocks[i][0] += block_direction[0];
+			snake_blocks[i][1] += block_direction[1];
+		}
 	}
+	
 	
 }
 
@@ -63,8 +57,17 @@ int* snake::get_head_direction() {
 
 
 void snake::change_head_direction(int* head_direction, const int* direction) {
+	if (head_direction[0] == -direction[0] && head_direction[1] == -direction[1]) {
+		return;
+	}
 	head_direction[0] = direction[0];
 	head_direction[1] = direction[1];
+}
+
+void snake::add_snake_block() {
+	int direction[2] = { snake_blocks[0][0] - snake_blocks[1][0], snake_blocks[0][1] - snake_blocks[1][1] };
+	std::vector<int> new_block = { snake_blocks[0][0] - direction[0], snake_blocks[0][1] - direction[1] };
+	snake_blocks.insert(snake_blocks.begin(), new_block);
 }
 
 
@@ -84,5 +87,9 @@ void snake::handle_key_event(SDL_Event& event) {
 	case SDL_SCANCODE_RIGHT:
 		change_head_direction(head_direction, direction_right);
 		break;
+	case SDL_SCANCODE_SPACE:
+		add_snake_block();
+		break;
+
 	}
 }

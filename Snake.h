@@ -11,5 +11,6 @@ public:
 	std::vector<std::vector<int>> get_snake_blocks();
 	void handle_key_event(SDL_Event& event);
 	void change_head_direction(int* head_direction, const int* direction);
+	void add_snake_block();
 };
 

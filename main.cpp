@@ -9,15 +9,22 @@ const int direction_down[2] = { 0,1 };
 const int direction_left[2] = { -1,0 };
 const int direction_right[2] = { 1,0 };
 
-const int square_count = 15;
 int window_width = 600, window_length = 600;
+const int square_count = 15;
+float square_width = 35.0f;
 
 static SDL_Window* window = NULL;
 static SDL_Renderer* renderer = NULL;
 
 
-SDL_FRect** squares;
+int** squares;
 snake snake_obj;
+std::vector<std::vector<int>> snake_arr;
+std::vector<int> head;
+
+
+long long timer_start_time = 1000;
+float game_speed = 1;
 
 
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
@@ -32,6 +39,8 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
 	}
 	snake_obj = snake();
 	squares = create_squares();
+	add_food_to_board();
+
 	return SDL_APP_CONTINUE;
 
 }
@@ -40,13 +49,13 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
 SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 {
 	if (event->type == SDL_EVENT_QUIT) {
-		return SDL_APP_SUCCESS;  /* end the program, reporting success to the OS. */
+		return SDL_APP_SUCCESS; 
 	}
 	else if (event->type == SDL_EVENT_KEY_DOWN) {
 		snake_obj.handle_key_event(*event);
 	}
 	
-	return SDL_APP_CONTINUE;  /* carry on with the program! */
+	return SDL_APP_CONTINUE;  
 }
 
 
@@ -59,24 +68,51 @@ SDL_AppResult SDL_AppIterate(void* appstate)
 
 	render_squares(renderer, squares);
 
-	snake_obj.Tick();
-	std::vector<std::vector<int>> snake_blocks = snake_obj.get_snake_blocks();
-	int* head_direction = snake_obj.get_head_direction();
+	
+	if (SDL_GetTicks() - timer_start_time > 250 / game_speed) {
+		snake_obj.Tick();
 
 
-	std::vector<int> head = snake_blocks[snake_blocks.size() - 1];
-	if (head[0] < 0 || head[0] >= square_count || head[1] < 0 || head[1] >= square_count) {
-		return SDL_APP_SUCCESS;
+		snake_arr = snake_obj.get_snake_blocks();
+		head = snake_arr[snake_arr.size() - 1];
+
+		//Check if snake is out of bounds
+		if (head[0] < 0 || head[0] >= square_count || head[1] < 0 || head[1] >= square_count) {
+			return SDL_APP_SUCCESS;
+		}
+
+		for (int i = 0; i < snake_arr.size(); i++) {
+
+			//Check if snake has collided with itself
+			if (i != snake_arr.size() - 1 && head[0] == snake_arr[i][0] && head[1] == snake_arr[i][1]) {
+				return SDL_APP_SUCCESS;
+			}
+		}
+
+
+		if (squares[head[0]][head[1]] == 1) {
+			snake_obj.add_snake_block();
+			squares[head[0]][head[1]] = 0;
+			add_food_to_board();
+
+			if (250 / game_speed > 50) {
+				game_speed += game_speed / 50;
+				SDL_Log("Game speed: %f", 250 / game_speed);
+			}
+		}
+
+		timer_start_time = SDL_GetTicks();
 	}
 
-	for (int i = 0; i < snake_blocks.size(); i++) {
-		render_snakeblock(renderer, squares, snake_blocks, i);
+
+	for (int i = 0; i < snake_arr.size(); i++) {
+		render_snakeblock(renderer, snake_arr, i);
 	}
 	
 
 	SDL_RenderPresent(renderer);
 
-	return SDL_APP_CONTINUE;  /* carry on with the program! */
+	return SDL_APP_CONTINUE;  
 }
 
 
@@ -87,56 +123,89 @@ void SDL_AppQuit(void* appstate, SDL_AppResult result) {
 
 
 
-static SDL_FRect** create_squares() {
-	SDL_FRect** squares = new SDL_FRect*[square_count];
-	float square_width = 35.0f;
-	float start = (window_width - square_width * square_count) / 2;
+int** create_squares() {
+	int** squares = new int*[square_count];
+	
 	for (int i = 0; i < square_count; i++) {
-		squares[i] = new SDL_FRect[square_count];
+		squares[i] = new int[square_count];
 
 		for (int j = 0; j < square_count; j++) {
-			squares[i][j] = {
-				start + square_width *i,
-				start + square_width *j,
-				square_width,
-				square_width
-			};
+			squares[i][j] = {0};
 		}
 	}
 	
 	return squares;
 }
 
-void render_squares(SDL_Renderer* renderer, SDL_FRect** squares) {
+void render_squares(SDL_Renderer* renderer, int** squares) {
 	SDL_Color color1 = { 79, 189, 108, 255 };
 	SDL_Color color2 = { 97, 194, 122, 255 };
 	bool choose_color1 = true;
+
+	float initial_starting_position = (window_width - square_width * square_count) / 2;
 	for (int i = 0; i < square_count; i++) {
 		for (int j = 0; j < square_count; j++) {
-			if (choose_color1) {
+			if(squares[i][j] == 1) {
+				SDL_SetRenderDrawColor(renderer, 247, 87, 135, 0);
+			}
+			else if (choose_color1) {
 				SDL_SetRenderDrawColor(renderer, color1.r, color1.g, color1.b, color1.a);
 			}
 			else {
 				SDL_SetRenderDrawColor(renderer, color2.r, color2.g, color2.b, color2.a);
 			}
 			
-			SDL_RenderFillRect(renderer, &squares[i][j]);
+			SDL_FRect square = {
+				initial_starting_position + square_width * i,
+				initial_starting_position + square_width * j,
+				square_width,
+				square_width
+			};
+			
+
+
+			SDL_RenderFillRect(renderer, &square);
 			choose_color1 = !choose_color1;
+			
+			if (squares[i][j] == -1) {
+				squares[i][j] = 0;
+			}
 		}
 	}
 }
 
-void render_snakeblock(SDL_Renderer* renderer, SDL_FRect** squares, std::vector<std::vector<int>> snake, int i) {
-	float width = squares[0][0].w;
-	float height = squares[0][0].h;
-	float x = squares[snake[i][0]][snake[i][1]].x;
-	float y = squares[snake[i][0]][snake[i][1]].y;
+void render_snakeblock(SDL_Renderer* renderer, std::vector<std::vector<int>> snake, int index_of_snake_block) {
+	float initial_starting_position = (window_width - square_width * square_count) / 2;
+	float width = square_width;
+	float height = square_width;
+	float x = initial_starting_position + square_width * snake[index_of_snake_block][0];
+	float y = initial_starting_position + square_width * snake[index_of_snake_block][1];
 
 	SDL_FRect rect = { x, y, width, height };
 
 
-	SDL_SetRenderDrawColor(renderer, 0, 0, 255, 0);
+	index_of_snake_block == snake.size()-1 ? SDL_SetRenderDrawColor(renderer, 205, 219, 112, 0) : SDL_SetRenderDrawColor(renderer, 75, 133, 227, 0);
 	SDL_RenderFillRect(renderer, &rect);
+
+	squares[snake[index_of_snake_block][0]][snake[index_of_snake_block][1]] = -1;
+}
+
+
+void add_food_to_board() {
+	int x = rand() % square_count;
+	int y = rand() % square_count;
+	int max_tries = 500;
+
+	while ((squares[x][y] == 1 || squares[x][y] == -1 )&& max_tries > 0) {
+		x = rand() % square_count;
+		y = rand() % square_count;
+		max_tries--;
+	}
+	SDL_Log("%d ", max_tries);
+	if (max_tries == 0) {
+		return;
+	}
+	squares[x][y] = 1;
 }
 
 
