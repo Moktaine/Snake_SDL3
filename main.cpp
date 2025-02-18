@@ -105,7 +105,6 @@ SDL_AppResult SDL_AppIterate(void* appstate)
 
 			if (250 / game_speed > 50) {
 				game_speed += game_speed / 50;
-				SDL_Log("Game speed: %f", 250 / game_speed);
 			}
 		}
 
@@ -196,9 +195,55 @@ void render_snakeblock(SDL_Renderer* renderer, std::vector<std::vector<int>> sna
 
 	SDL_FRect rect = { x, y, width, height };
 
+	int direction[2] = {0,0};
+	if (index_of_snake_block != 0) {
+		direction[0] = snake[index_of_snake_block][0] - snake[index_of_snake_block - 1][0];
+		direction[1] = snake[index_of_snake_block][1] - snake[index_of_snake_block - 1][1];
+	}
+	else {
+		direction[0] = snake[0][0] - snake[1][0];
+		direction[1] = snake[0][1] - snake[1][1];
+	}
 
-	index_of_snake_block == snake.size()-1 ? SDL_SetRenderDrawColor(renderer, 205, 219, 112, 0) : SDL_SetRenderDrawColor(renderer, 75, 133, 227, 0);
-	SDL_RenderFillRect(renderer, &rect);
+	int angle = direction[0] * 90;
+	
+	if (direction[1] == 1) {
+		angle = 180;
+	}
+
+	if (index_of_snake_block == snake.size() - 1) {
+		SDL_Texture* texture = IMG_LoadTexture(renderer, "Sprites/head_up.png");
+		SDL_RenderTextureRotated(renderer, texture, NULL, &rect, angle, NULL, SDL_FLIP_NONE);
+	}
+	else if(index_of_snake_block == 0){
+		SDL_Texture* texture = IMG_LoadTexture(renderer, "Sprites/tail_up.png");
+		SDL_RenderTextureRotated(renderer, texture, NULL, &rect, angle, NULL, SDL_FLIP_NONE);
+	}
+	else {
+		int diff_x = snake[index_of_snake_block + 1][0] - snake[index_of_snake_block - 1][0];
+		int diff_y = snake[index_of_snake_block + 1][1] - snake[index_of_snake_block - 1][1];
+		
+		if (abs(diff_x) == 1 && abs(diff_y) == 1) {
+			
+			if (diff_x == diff_y) {
+				angle += abs(angle) == 90 ? 90 : 180;
+			}
+			else {
+				angle += abs(angle) == 90 ? 180 : 90;
+			}
+
+
+			SDL_Texture* texture = IMG_LoadTexture(renderer, "Sprites/body_topright.png");
+			SDL_RenderTextureRotated(renderer, texture, NULL, &rect, angle, NULL, SDL_FLIP_NONE);
+		}
+		else {
+			SDL_Texture* texture = IMG_LoadTexture(renderer, "Sprites/body_vertical.png");
+			SDL_RenderTextureRotated(renderer, texture, NULL, &rect, angle, NULL, SDL_FLIP_NONE);
+		}
+
+		
+	}
+
 }
 
 
@@ -208,7 +253,6 @@ void add_food_to_board() {
 
 	
 	while (squares[x][y] == 1 || squares[x][y] == -1) {
-		SDL_Log("Food already exists at or Snake exists %d %d", x, y);
 		x = rand() % square_count;
 		y = rand() % square_count;
 	}

@@ -3,11 +3,13 @@
 #include <SDL3/SDL.h>
 #include "main.h"
 
+namespace {
+	const int direction_up[2] = { 0,-1 };
+	const int direction_down[2] = { 0,1 };
+	const int direction_left[2] = { -1,0 };
+	const int direction_right[2] = { 1,0 };
 
-const int direction_up[2] = { 0,-1 };
-const int direction_down[2] = { 0,1 };
-const int direction_left[2] = { -1,0 };
-const int direction_right[2] = { 1,0 };
+}
 
 
 int* head_direction;
